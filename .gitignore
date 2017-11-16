@@ -3,3 +3,4 @@ include/*
 lib/*
 .vscode/*
 apikeys.json
+pip-selfcheck.json
