@@ -90,17 +90,17 @@ def get_private_channel(user):
             return pc
     return None
 
-def print_group_info(channel, group):
+def print_group_info(channel, groupObj):
     message = '```md'
-    message += group.group_info_string_long()
+    message += groupObj.group_info_string_long()
     message += '```'
     yield from client.send_message(channel, message)
     print('Message Sent')
 
 def list_groups(channel):
     message = '```md'
-    for g in groups:
-        message += g.group_info_string_short()
+    for groupObj in groups:
+        message += groupObj.group_info_string_short()
     message += '```'
     yield from client.send_message(channel, message)
     print('Message Sent')
