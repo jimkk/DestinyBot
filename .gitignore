@@ -2,5 +2,6 @@ bin/*
 include/*
 lib/*
 .vscode/*
+__pycache__/*
 apikeys.json
 pip-selfcheck.json
