@@ -5,8 +5,10 @@ import json
 from datetime import datetime
 from tzlocal import get_localzone
 import discord
+from group import group
 
 client = discord.Client()
+groups = []
 
 @client.event
 @asyncio.coroutine
@@ -22,6 +24,8 @@ def on_ready():
 def on_message(message):
     if message.content.startswith('!b create'):
         yield from create_group(message)
+    elif message.content.startswith('!b join'):
+        yield from join_group(message)
 
 
 def create_group(message):
@@ -36,7 +40,8 @@ def create_group(message):
         raid_name = ''
         raid_time = None
         yield from client.send_message(pc, 'Raid Name?')
-        raid_name = yield from client.wait_for_message(channel=pc, author=message.author)
+        msg = yield from client.wait_for_message(channel=pc, author=message.author)
+        raid_name = msg.content
         yield from client.send_message(pc, 'Time? (if today just enter time in 24 hour time (HH:MM) otherwise DD/MM/YYYY HH:MM (24 time)')
         msg = yield from client.wait_for_message(channel=pc, author=message.author)
         if len(msg.content) == 5:
@@ -44,17 +49,56 @@ def create_group(message):
             minute = int(msg.content[3:])
             today =  datetime.today()
             raid_time = datetime(today.year, today.month, today.day, hour=hour, minute=minute, tzinfo=get_localzone())
-            print(raid_time.strftime('%A, %d. %B %Y %I:%M%p %Z'))
+        else:
+            timestr = msg.content.strip()
+            day = int(timestr[0:2])
+            month = int(timestr[3:5])
+            year = int(timestr[6:10])
+            hour = int(timestr[11:13])
+            minute = int(timestr[14:16])
+            raid_time = datetime(year, month, day, hour, minute, tzinfo=get_localzone())
+        print(raid_time.strftime('%A, %d. %B %Y %I:%M%p %z'))
+        raid_group = group(raid_name, message.author.id, message.author.display_name, raid_time, 6)
+        groups.append(raid_group)
+        yield from print_group_info(message.channel, raid_group)
+    elif msg.content.lower() == 't' or msg.content.lower() == 'trials':
+        pass
+    elif msg.content.lower() == 'nf' or msg.content.lower() == 'nightfall':
+        pass
 
+def join_group(message):
+    user = message.author
+    group_name = message.content[8:]
+    for g in groups:
+        if g.name == group_name:
+            for member in group.members:
+                if member[0] == user.id:
+                    yield from client.send_message(message.channel, 'You are already in this group.')
+                    return
+            else:
+                g.add_member(user.id, user.display_name)
+                yield from print_group_info(message.channel, g)
+                return
+    yield from client.send_message(message.channel, 'Group Not Found.')
 
 def get_private_channel(user):
     for pc in client.private_channels:
         print(len(pc.recipients))
-        print('%s == %s? %s' % (user, pc.recipients[0], user == pc.recipients[0]))
         if len(pc.recipients) == 1 and user in pc.recipients:
-            print('Found PC')
             return pc
     return None
+
+def print_group_info(channel, groupInfo):
+    message = '```md'
+    message += '\n< {} >'.format(groupInfo.type_name())
+    message += '\n# {}'.format(groupInfo.name)
+    message += '\n{}'.format(groupInfo.time.strftime('%A, %B %d. %Y %I:%M%p %z'))
+    message += '\nMembers\n-------'
+    for m in groupInfo.members:
+        message += '\n* {}'.format(m[1])
+    message += '\n```'
+    yield from client.send_message(channel, message)
+    print('Message Sent')
 
 if os.path.isfile('apikeys.json'):
     with open('apikeys.json') as json_file:
