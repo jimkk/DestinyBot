@@ -26,6 +26,8 @@ def on_message(message):
         yield from create_group(message)
     elif message.content.startswith('!b join'):
         yield from join_group(message)
+    elif message.content.startswith('!b list'):
+        yield from list_groups(message)
 
 
 def create_group(message):
@@ -88,15 +90,18 @@ def get_private_channel(user):
             return pc
     return None
 
-def print_group_info(channel, groupInfo):
+def print_group_info(channel, groupObj):
     message = '```md'
-    message += '\n< {} >'.format(groupInfo.type_name())
-    message += '\n# {}'.format(groupInfo.name)
-    message += '\n{}'.format(groupInfo.time.strftime('%A, %B %d. %Y %I:%M%p %z'))
-    message += '\nMembers\n-------'
-    for m in groupInfo.members:
-        message += '\n* {}'.format(m[1])
-    message += '\n```'
+    message += groupObj.group_info_string_long()
+    message += '```'
+    yield from client.send_message(channel, message)
+    print('Message Sent')
+
+def list_groups(channel):
+    message = '```md'
+    for groupObj in groups:
+        message += groupObj.group_info_string_short()
+    message += '```'
     yield from client.send_message(channel, message)
     print('Message Sent')
 
